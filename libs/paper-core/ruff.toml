@@ -1,0 +1,123 @@
+# ruff — lint + format
+# 规范唯一来源：scholarspace/packages/conventions/python/ruff.toml
+#
+# 用法（子项目）：
+#   [tool.ruff]
+#   extend = "../scholarspace/packages/conventions/python/ruff.toml"
+
+target-version = "py313"
+line-length = 100
+
+# ── 选用的规则集 ─────────────────────────────────────
+[lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort（import 排序）
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # bugbear
+    "A",     # builtin shadowing
+    "C4",    # comprehensions
+    "DTZ",   # datetime timezone
+    "T20",   # print（禁 print）
+    "SIM",   # simplify
+    "PTH",   # pathlib（禁 os.path）
+    "RUF",   # ruff 专属
+    "ASYNC", # async 陷阱
+    "S",     # bandit 安全
+    "BLE",   # blind except
+    "TRY",   # try/except 规范
+    "PERF",  # 性能
+    "ANN",   # 类型标注
+    "D",     # docstring
+    "ARG",   # 未使用参数
+    "PL",    # pylint 子集
+    "ERA",   # 注释掉的代码
+]
+
+ignore = [
+    # ── docstring 与 formatter 冲突 ────────────────────
+    "D203",   # 与 D211 冲突
+    "D213",   # 与 D212 冲突
+    "D212",   # 多行 docstring 首行换行（中文习惯更常用首行同行）
+    "D415",   # 首行必须以句号结尾 —— 中文文档句号不总是显式，改由 D400 近似
+    # ⚠️ D403 要求首词大写 —— 但技术标识符（reload/details/cause/repr/stat…）
+    #    本就该保持小写。强制大写会写出 "Reload picks up..." 这类别扭文档。
+    "D403",
+
+    # ── 中文文档字符串的标点规范 ────────────────────────
+    "RUF001", # 存在全角「」等歧义字符
+    "RUF002", # 存在全角括号（）等歧义字符
+    "RUF003", # 存在全角破折号等歧义字符
+    # ⚠️ 中文技术文档大量使用全角标点，强制半角会降低可读性
+
+    # ── 与既有代码风格冲突，先放开，后续逐步收紧 ──
+    "ANN401", # Any 类型：领域层偶尔需要（后续用泛型替代）
+    "COM812", # 缺尾逗号（与 formatter 冲突）
+    "ISC001", # 与 formatter 冲突
+    "E501",   # 行长由 formatter 管
+
+    # ── docstring 粒度：类/模块要，方法与 __init__ 不强制 ──
+    "D105",   # 魔术方法 docstring
+    "D107",   # __init__ docstring
+
+    # ── 异常消息位置：允许在调用处传消息 ────────────────
+    "TRY003", # 长消息应定义在异常类中 —— 领域异常需带上下文参数，强制反而累赘
+]
+
+# ── per-file 豁免 ────────────────────────────────────
+#
+# ⚠️⚠️ 关键：ruff 的 per-file-ignores 路径是相对**本文件所在目录**解析的，
+#    不是相对使用它的项目！
+#
+#    所以 `**/ports/**.py` 会被解析成
+#    `<conventions>/python/**/ports/**.py` → 永远匹配不到项目文件。
+#
+#    解决办法：用 **basename** 形式（不带目录分隔符）。
+#    ruff 对 basename 做全路径匹配，所以 "ports.py" 能匹配任意目录下的该文件。
+#
+# 校验方法：
+#   ruff check --show-settings <file> | Select-String per_file_ignores
+
+[lint.per-file-ignores]
+# 测试文件：允许断言、允许魔法值、不要求 docstring
+# basename 形式
+"test_*.py" = ["S101", "PLR2004", "D103", "D100", "D104", "ANN201", "ANN001", "ARG001"]
+"conftest.py" = ["S101", "PLR2004", "D103", "D100", "D104", "ANN201", "ANN001"]
+# 迁移脚本
+"env.py" = ["D103", "D100", "D104", "ANN"]
+# 初始化文件：不需要模块级 docstring
+"__init__.py" = ["F401", "D104"]
+# 领域实体：dataclass 的字段不是构造函数
+"entities.py" = ["D101"]
+# 协议（Protocol）文件：方法只有签名无实现，属正常
+"repositories.py" = ["D102"]
+"ports.py" = ["D102"]
+
+# ── FastAPI 惯用法 ────────────────────────────────────
+# B008: Depends() 必须写在默认值里（FastAPI 的标准写法）
+# ARG001: lifespan 的 app 参数由框架注入，业务上确实不用
+"router.py" = ["B008", "ARG001"]
+"main.py" = ["ARG001"]
+"dependencies.py" = ["B008"]
+
+
+# ── 复杂度 ───────────────────────────────────────────
+[lint.mccabe]
+max-complexity = 12
+
+# ── isort ────────────────────────────────────────────
+[lint.isort]
+known-first-party = ["scholarspace", "core", "auth", "llm", "storage", "events",
+                     "billing", "paper", "slides", "orchestra", "community", "federation"]
+combine-as-imports = true
+
+# ── pydocstyle ───────────────────────────────────────
+[lint.pydocstyle]
+convention = "google"
+
+# ── flake8-bandit 安全规则 ─────────────────────────────
+[lint.flake8-bandit]
+# 测试中允许 assert 的白名单已在上方 per-file-ignores 中配置
