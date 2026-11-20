@@ -1,0 +1,49 @@
+[project]
+name = "paper-sources"
+version = "0.1.0"
+description = "scholarspace 论文数据源适配器 —— arXiv / Crossref"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "Proprietary" }
+
+dependencies = [
+    "paper-core",
+    "httpx>=0.28",
+    # ⚠️ **必选** —— 解析不可信的 XML（arXiv Atom）
+    # 没有它就只能退回「拒绝带实体的 XML」，功能会退化。
+    "defusedxml>=0.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "respx>=0.21",
+    "ruff>=0.9",
+    "mypy>=1.14",
+    "types-defusedxml>=0.5",
+]
+
+[tool.uv.sources]
+paper-core = { path = "../paper-core", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/paper_sources"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/paper_sources", "README.md"]
+
+[tool.ruff]
+extend = "./ruff.toml"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+asyncio_default_test_loop_scope = "function"
+addopts = "-ra --strict-markers --tb=short"
